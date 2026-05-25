@@ -190,3 +190,47 @@ def plot_metrics_comparison(
     plt.close()
     
     print(f"✓ Metrics comparison chart saved to {output_path}")
+
+
+def plot_residual_energy_series(
+    energy_data: dict[str, list[float]],
+    output_path: str | Path,
+    title: str = "Residual Energy Series Comparison",
+) -> None:
+    """Generate a line chart comparing residual energy across frame pairs.
+
+    Args:
+        energy_data: Dictionary mapping algorithm names to lists of energy values.
+        output_path: Path to save the comparison chart.
+        title: Title for the chart.
+    """
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+
+    # Determine number of points (frame pairs)
+    first_vals = next(iter(energy_data.values()), [])
+    x_values = list(range(len(first_vals)))
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#95E1D3']
+
+    for (algorithm, energies), color in zip(energy_data.items(), colors):
+        ax.plot(
+            x_values,
+            energies,
+            marker='o',
+            linewidth=2.0,
+            label=algorithm,
+            color=color,
+            alpha=0.9,
+        )
+
+    ax.set_xlabel('Frame Pair Index', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Residual Energy', fontsize=12, fontweight='bold')
+    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.grid(alpha=0.3, linestyle='--')
+    ax.legend(fontsize=11)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"✓ Residual energy series chart saved to {output_path}")
