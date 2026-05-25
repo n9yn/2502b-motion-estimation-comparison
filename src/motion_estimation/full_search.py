@@ -1,6 +1,7 @@
 """Full Search motion estimation algorithm."""
 
 from typing import Any
+import time
 
 import cv2
 import numpy as np
@@ -29,13 +30,21 @@ def full_search_motion_estimation(
     target_frame: Any,
     block_size: int = 16,
     search_range: int = 8,
-) -> list[MotionVector]:
-    """Compute motion vectors using a full search algorithm."""
+    return_stats: bool = False,
+) -> list[MotionVector] | tuple[list[MotionVector], dict]:
+    """Compute motion vectors using a full search algorithm.
+
+    If `return_stats` is True, returns (motion_vectors, stats) where stats contains
+    `comparisons` and `time_ms`.
+    """
     reference = _to_grayscale(reference_frame)
     target = _to_grayscale(target_frame)
 
     height, width = reference.shape
     motion_vectors: list[MotionVector] = []
+
+    comparisons = 0
+    t0 = time.perf_counter()
 
     for y in range(0, height - block_size + 1, block_size):
         for x in range(0, width - block_size + 1, block_size):
@@ -58,6 +67,7 @@ def full_search_motion_estimation(
 
                     target_block = target[candidate_y:candidate_y + block_size, candidate_x:candidate_x + block_size]
                     sad = _block_sad(reference_block, target_block)
+                    comparisons += 1
                     if sad < best_sad:
                         best_sad = sad
                         best_dx = dx
@@ -65,5 +75,10 @@ def full_search_motion_estimation(
 
             motion_vectors.append(MotionVector(x, y, best_dx, best_dy))
 
-    print(f"✓ Full Search generated {len(motion_vectors)} motion vectors")
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+    stats = {"comparisons": comparisons, "time_ms": elapsed_ms}
+    print(f"✓ Full Search generated {len(motion_vectors)} motion vectors (comparisons={comparisons}, time={elapsed_ms:.1f}ms)")
+
+    if return_stats:
+        return motion_vectors, stats
     return motion_vectors

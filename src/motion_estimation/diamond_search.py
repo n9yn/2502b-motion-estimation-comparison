@@ -1,6 +1,7 @@
 """Diamond Search motion estimation algorithm."""
 
 from typing import Any
+import time
 
 import cv2
 import numpy as np
@@ -34,10 +35,12 @@ def _search_candidates(
     step: int,
     block_size: int,
     search_range: int,
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int, int]:
+    """Search a small diamond of candidates and return best dx, dy, sad, comparisons."""
     best_dx = center_dx
     best_dy = center_dy
     best_sad = float("inf")
+    comparisons = 0
 
     for dx, dy in [(0, 0), (-step, 0), (step, 0), (0, -step), (0, step)]:
         candidate_dx = center_dx + dx
@@ -57,12 +60,13 @@ def _search_candidates(
 
         target_block = target[candidate_y:candidate_y + block_size, candidate_x:candidate_x + block_size]
         sad = _block_sad(reference_block, target_block)
+        comparisons += 1
         if sad < best_sad:
             best_sad = sad
             best_dx = candidate_dx
             best_dy = candidate_dy
 
-    return best_dx, best_dy, best_sad
+    return best_dx, best_dy, best_sad, comparisons
 
 
 def diamond_search_motion_estimation(
@@ -70,13 +74,21 @@ def diamond_search_motion_estimation(
     target_frame: Any,
     block_size: int = 16,
     search_range: int = 8,
-) -> list[MotionVector]:
-    """Compute motion vectors using a diamond search algorithm."""
+    return_stats: bool = False,
+) -> list[MotionVector] | tuple[list[MotionVector], dict]:
+    """Compute motion vectors using a diamond search algorithm.
+
+    If `return_stats` is True, returns (motion_vectors, stats) where stats contains
+    `comparisons` and `time_ms`.
+    """
     reference = _to_grayscale(reference_frame)
     target = _to_grayscale(target_frame)
 
     height, width = reference.shape
     motion_vectors: list[MotionVector] = []
+
+    comparisons = 0
+    t0 = time.perf_counter()
 
     for y in range(0, height - block_size + 1, block_size):
         for x in range(0, width - block_size + 1, block_size):
@@ -86,7 +98,7 @@ def diamond_search_motion_estimation(
             step = max(search_range // 2, 1)
 
             while step > 0:
-                best_dx, best_dy, best_sad = _search_candidates(
+                best_dx, best_dy, best_sad, comps = _search_candidates(
                     reference_block,
                     target,
                     x,
@@ -97,6 +109,7 @@ def diamond_search_motion_estimation(
                     block_size,
                     search_range,
                 )
+                comparisons += comps
 
                 if best_dx == center_dx and best_dy == center_dy:
                     step //= 2
@@ -105,5 +118,10 @@ def diamond_search_motion_estimation(
 
             motion_vectors.append(MotionVector(x, y, center_dx, center_dy))
 
-    print(f"✓ Diamond Search generated {len(motion_vectors)} motion vectors")
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+    stats = {"comparisons": comparisons, "time_ms": elapsed_ms}
+    print(f"✓ Diamond Search generated {len(motion_vectors)} motion vectors (comparisons={comparisons}, time={elapsed_ms:.1f}ms)")
+
+    if return_stats:
+        return motion_vectors, stats
     return motion_vectors

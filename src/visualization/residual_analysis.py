@@ -16,65 +16,117 @@ from src.visualization.visualization_manager import VisualizationManager
 
 def extract_residual_energy_series(
     frames_dir: str | Path,
-    output_dir: str | Path,
-    block_size: int = 16,
-    search_range: int = 8,
-) -> Dict[str, List[float]]:
-    """Compute residual energy series for Full Search and Diamond Search.
+    from typing import List
+    import os
+    import csv
+    import time
 
-    This function processes consecutive frame pairs in `frames_dir`, computes motion
-    vectors using both algorithms, generates residual frames, computes their energy,
-    and saves per-frame residual visualizations and a final energy series chart.
+    import numpy as np
 
-    Returns a dict mapping algorithm names to list of energies.
-    """
-    frames_path = Path(frames_dir)
-    out_path = Path(output_dir)
-    vis = VisualizationManager(out_path / "visualizations")
-    charts_dir = out_path / "charts"
-    charts_dir.mkdir(parents=True, exist_ok=True)
+    from src.motion_estimation.full_search import full_search_motion_estimation
+    from src.motion_estimation.diamond_search import diamond_search_motion_estimation
+    from src.residual.residual_generator import generate_residual
+    from src.residual.residual_energy import residual_energy
+    from src.visualization.comparison_chart import plot_residual_energy_series
+    from src.visualization.visualization_manager import VisualizationManager
+    from src.utils.metrics import mse, psnr
 
-    frame_files = sorted(frames_path.glob("*.png"))
-    if len(frame_files) < 2:
-        raise ValueError("Need at least two frames to compute residual series")
 
-    energies_fs: List[float] = []
-    energies_diamond: List[float] = []
+    def analyze_residuals(
+        frames_dir: str,
+        output_dir: str,
+        block_size: int = 16,
+        search_range: int = 8,
+    ):
+        os.makedirs(output_dir, exist_ok=True)
+        reports_dir = os.path.join(output_dir, "reports")
+        os.makedirs(reports_dir, exist_ok=True)
+        vm = VisualizationManager(output_dir)
 
-    for idx in range(len(frame_files) - 1):
-        f1 = cv2.imread(str(frame_files[idx]), cv2.IMREAD_COLOR)
-        f2 = cv2.imread(str(frame_files[idx + 1]), cv2.IMREAD_COLOR)
-        if f1 is None or f2 is None:
-            continue
+        frame_files = sorted([
+            os.path.join(frames_dir, f)
+            for f in os.listdir(frames_dir)
+            if f.lower().endswith((".png", ".jpg", ".jpeg"))
+        ])
 
-        # Convert to grayscale for estimation and residual computation
-        ref_gray = cv2.cvtColor(f1, cv2.COLOR_BGR2GRAY)
-        tar_gray = cv2.cvtColor(f2, cv2.COLOR_BGR2GRAY)
+        energies = []
+        rows = []
 
-        # Compute motion vectors
-        vectors_fs = full_search_motion_estimation(ref_gray, tar_gray, block_size, search_range)
-        vectors_diamond = diamond_search_motion_estimation(ref_gray, tar_gray, block_size, search_range)
+        for i in range(len(frame_files) - 1):
+            ref_path = frame_files[i]
+            tgt_path = frame_files[i + 1]
+            ref = __import__("cv2").imread(ref_path)
+            tgt = __import__("cv2").imread(tgt_path)
 
-        # Generate residuals
-        residual_fs = generate_residual_frame(ref_gray, tar_gray, vectors_fs, block_size)
-        residual_diamond = generate_residual_frame(ref_gray, tar_gray, vectors_diamond, block_size)
+            fs_result = full_search_motion_estimation(ref, tgt, block_size=block_size, search_range=search_range, return_stats=True)
+            if isinstance(fs_result, tuple):
+                fs_vectors, fs_stats = fs_result
+            else:
+                fs_vectors = fs_result
+                fs_stats = {"comparisons": 0, "time_ms": 0.0}
 
-        # Compute energies
-        e_fs = calculate_residual_energy(residual_fs)
-        e_diamond = calculate_residual_energy(residual_diamond)
+            ds_result = diamond_search_motion_estimation(ref, tgt, block_size=block_size, search_range=search_range, return_stats=True)
+            if isinstance(ds_result, tuple):
+                ds_vectors, ds_stats = ds_result
+            else:
+                ds_vectors = ds_result
+                ds_stats = {"comparisons": 0, "time_ms": 0.0}
 
-        energies_fs.append(e_fs)
-        energies_diamond.append(e_diamond)
+            # generate residuals using FS vectors
+            predicted_fs = generate_residual(ref, tgt, fs_vectors, block_size=block_size, return_predicted=True)
+            residual_fs = generate_residual(ref, tgt, fs_vectors, block_size=block_size, return_predicted=False)
+            energy_fs = residual_energy(residual_fs)
 
-        # Save per-frame residual visualizations
-        vis.save_residual_frame(residual_fs, "Full Search", frame_idx=idx)
-        vis.save_residual_frame(residual_diamond, "Diamond Search", frame_idx=idx)
-        vis.save_residual_comparison(residual_fs, residual_diamond, frame_idx=idx)
+            # compute accuracy metrics between target and predicted
+            mse_fs = mse(tgt, predicted_fs)
+            psnr_fs = psnr(tgt, predicted_fs)
 
-    energy_data = {
-        'Full Search': energies_fs,
-        'Diamond Search': energies_diamond,
-    }
+            energies.append((i, energy_fs))
+
+            # save visualizations
+            vm.save_vector_field_image(fs_vectors, os.path.join(output_dir, f"fs_vectors_{i:03d}.png"))
+            vm.save_vector_field_image(ds_vectors, os.path.join(output_dir, f"ds_vectors_{i:03d}.png"))
+            vm.save_overlay_image(ref, fs_vectors, os.path.join(output_dir, f"fs_overlay_{i:03d}.png"))
+            vm.save_overlay_image(ref, ds_vectors, os.path.join(output_dir, f"ds_overlay_{i:03d}.png"))
+            vm.save_residual_image(residual_fs, os.path.join(output_dir, f"residual_fs_{i:03d}.png"))
+
+            row = {
+                "frame_index": i,
+                "fs_comparisons": int(fs_stats.get("comparisons", 0)),
+                "fs_time_ms": float(fs_stats.get("time_ms", 0.0)),
+                "ds_comparisons": int(ds_stats.get("comparisons", 0)),
+                "ds_time_ms": float(ds_stats.get("time_ms", 0.0)),
+                "residual_energy_fs": float(energy_fs),
+                "mse_fs": float(mse_fs),
+                "psnr_fs": float(psnr_fs),
+            }
+            rows.append(row)
+
+        # plot energy series
+        if energies:
+            indices, vals = zip(*energies)
+            plot_residual_energy_series(indices, vals, os.path.join(output_dir, "residual_energy_series.png"))
+
+        # write CSV report
+        csv_path = os.path.join(reports_dir, "summary.csv")
+        with open(csv_path, "w", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=list(rows[0].keys()) if rows else [])
+            if rows:
+                writer.writeheader()
+                for r in rows:
+                    writer.writerow(r)
+
+        # write Markdown summary
+        md_path = os.path.join(reports_dir, "summary.md")
+        with open(md_path, "w") as md:
+            md.write("# Residual Analysis Summary\n\n")
+            md.write(f"Processed {len(rows)} frame pairs.\n\n")
+            md.write("|frame_index|fs_comparisons|fs_time_ms|ds_comparisons|ds_time_ms|residual_energy_fs|mse_fs|psnr_fs|\n")
+            md.write("|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+            for r in rows:
+                md.write(f"|{r['frame_index']}|{r['fs_comparisons']}|{r['fs_time_ms']:.2f}|{r['ds_comparisons']}|{r['ds_time_ms']:.2f}|{r['residual_energy_fs']:.2f}|{r['mse_fs']:.2f}|{r['psnr_fs']:.2f}|\n")
+
+        print(f"Residual analysis completed. Outputs saved to {output_dir} and reports to {reports_dir}")
 
     # Save comparison chart
     chart_path = charts_dir / "residual_energy_series.png"

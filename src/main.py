@@ -14,6 +14,7 @@ from src.visualization.visualization_manager import VisualizationManager
 from src.visualization.comparison_chart import plot_runtime_comparison, plot_energy_comparison
 from src.utils.config import Config
 from src.utils.file_handler import resolve_working_paths
+from src.analysis.comparison import create_comparison_result
 
 
 def main() -> None:
@@ -27,7 +28,7 @@ def main() -> None:
     print("=" * 60)
 
     # Extract frames from video
-    print("\n[1/5] Extracting frames from video...")
+    print("\n[1/6] Extracting frames from video...")
     extract_frames_from_video(sample_video, Config.EXTRACTED_FRAMES_DIR)
     print(f"✓ Frames extracted to {Config.EXTRACTED_FRAMES_DIR}")
 
@@ -40,7 +41,7 @@ def main() -> None:
         return
 
     # Load frames
-    print("\n[2/5] Loading frames for analysis...")
+    print("\n[2/6] Loading frames for analysis...")
     frame1_color = cv2.imread(str(frame_files[0]), cv2.IMREAD_COLOR)
     frame2_color = cv2.imread(str(frame_files[1]), cv2.IMREAD_COLOR)
 
@@ -52,26 +53,31 @@ def main() -> None:
     frame2 = convert_to_grayscale(frame2_color)
     print(f"✓ Loaded frames with shape {frame1.shape}")
 
-    # Run motion estimation algorithms
-    print("\n[3/5] Running motion estimation algorithms...")
-    full_vectors = full_search_motion_estimation(
+    # Run motion estimation algorithms with statistics
+    print("\n[3/6] Running motion estimation algorithms...")
+    print("  Running Full Search...")
+    full_vectors, fs_stats = full_search_motion_estimation(
         frame1,
         frame2,
         Config.BLOCK_SIZE,
         Config.SEARCH_RANGE,
+        return_stats=True,
     )
-    diamond_vectors = diamond_search_motion_estimation(
+    
+    print("  Running Diamond Search...")
+    diamond_vectors, diamond_stats = diamond_search_motion_estimation(
         frame1,
         frame2,
         Config.BLOCK_SIZE,
         Config.SEARCH_RANGE,
+        return_stats=True,
     )
     
     print(f"✓ Full Search: {len(full_vectors)} motion vectors")
     print(f"✓ Diamond Search: {len(diamond_vectors)} motion vectors")
 
     # Generate residual frames
-    print("\n[4/5] Generating residuals...")
+    print("\n[4/6] Generating residuals and calculating energy...")
     residual_fs = generate_residual_frame(frame1, frame2, full_vectors, Config.BLOCK_SIZE)
     residual_diamond = generate_residual_frame(frame1, frame2, diamond_vectors, Config.BLOCK_SIZE)
 
@@ -81,8 +87,22 @@ def main() -> None:
     print(f"✓ Full Search residual energy: {energy_fs:.2f}")
     print(f"✓ Diamond Search residual energy: {energy_diamond:.2f}")
 
+    # Create comprehensive comparison results
+    print("\n[5/6] Analyzing and comparing results...")
+    comparison = create_comparison_result(
+        frame1,
+        frame2,
+        residual_fs,
+        residual_diamond,
+        energy_fs,
+        energy_diamond,
+        (full_vectors, fs_stats),
+        (diamond_vectors, diamond_stats),
+    )
+    comparison.print_summary()
+
     # Save all visualizations
-    print("\n[5/5] Generating and saving visualizations...")
+    print("\n[6/6] Generating and saving visualizations...")
     vis_manager = VisualizationManager(Config.OUTPUT_DIR / "visualizations")
 
     results = vis_manager.save_all_visualizations(
@@ -97,11 +117,11 @@ def main() -> None:
 
     print(f"\n✓ Saved {len(results)} visualization files")
 
-    # Save comparison charts
+    # Save comparison charts with actual measured data
     print("\nGenerating comparison charts...")
     runtime_data = {
-        'Full Search': 45.2,
-        'Diamond Search': 12.8,
+        'Full Search': fs_stats["time_ms"],
+        'Diamond Search': diamond_stats["time_ms"],
     }
     energy_data = {
         'Full Search': energy_fs,
