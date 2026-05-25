@@ -71,5 +71,4 @@ def generate_residual_frame(
 
     predicted = _build_predicted_frame(reference, motion_vectors, block_size)
     residual = target.astype(np.int16) - predicted.astype(np.int16)
-
     return residual

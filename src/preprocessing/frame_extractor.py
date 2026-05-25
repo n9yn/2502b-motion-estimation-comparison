@@ -16,9 +16,13 @@ def extract_frames_from_video(
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
+    video_path = Path(video_path)
+    if not video_path.exists():
+        raise FileNotFoundError(f"Video file not found: {video_path}")
+
     capture = cv2.VideoCapture(str(video_path))
     if not capture.isOpened():
-        raise FileNotFoundError(f"Unable to open video file: {video_path}")
+        raise IOError(f"Unable to open video file: {video_path}")
 
     sample_path = None
     if sample_output_dir is not None:

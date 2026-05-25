@@ -4,13 +4,21 @@ from pathlib import Path
 from typing import Any
 
 import cv2
+import numpy as np
 
 
 def convert_to_grayscale(frame: Any) -> Any:
     """Convert a color frame to grayscale."""
     if frame is None:
         raise ValueError("Frame is None")
-    return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    array = np.asarray(frame)
+    if array.ndim == 2:
+        return array
+    if array.ndim == 3 and array.shape[2] == 3:
+        return cv2.cvtColor(array, cv2.COLOR_BGR2GRAY)
+
+    raise ValueError("Unsupported frame format for grayscale conversion")
 
 
 def batch_convert_directory(input_dir: str | Path, output_dir: str | Path) -> None:

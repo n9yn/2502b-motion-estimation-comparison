@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any
+import time
 
 import cv2
 import numpy as np
@@ -100,10 +101,11 @@ def _find_best_match(
     search_range: int,
     offsets: list[tuple[int, int]],
     cost_fn,
-) -> tuple[int, int, float]:
+) -> tuple[int, int, float, int]:
     best_x = search_center_x
     best_y = search_center_y
     best_cost = float("inf")
+    comparisons = 0
 
     for dx, dy in offsets:
         candidate_x = search_center_x + dx
@@ -125,12 +127,13 @@ def _find_best_match(
             continue
 
         cost = cost_fn(ref_block, target_block)
+        comparisons += 1
         if cost < best_cost:
             best_cost = cost
             best_x = candidate_x
             best_y = candidate_y
 
-    return best_x, best_y, best_cost
+    return best_x, best_y, best_cost, comparisons
 
 
 def diamond_search_motion_estimation(
@@ -140,7 +143,8 @@ def diamond_search_motion_estimation(
     search_range: int = 8,
     metric: str = "mad",
     save_path: str | Path | None = None,
-) -> list[MotionVector]:
+    return_stats: bool = False,
+) -> list[MotionVector] | tuple[list[MotionVector], dict]:
     """Compute motion vectors using a diamond search algorithm."""
     reference = _normalize_frame(reference_frame)
     target = _normalize_frame(target_frame)
@@ -151,6 +155,8 @@ def diamond_search_motion_estimation(
     height, width = reference.shape
     cost_fn = _get_cost_function(metric)
     motion_vectors: list[MotionVector] = []
+    comparisons = 0
+    t0 = time.perf_counter()
 
     for y in range(0, height - block_size + 1, block_size):
         for x in range(0, width - block_size + 1, block_size):
@@ -160,7 +166,7 @@ def diamond_search_motion_estimation(
 
             if search_range >= 2:
                 while True:
-                    best_x, best_y, best_cost = _find_best_match(
+                    best_x, best_y, best_cost, comps = _find_best_match(
                         ref_block,
                         target,
                         x,
@@ -174,12 +180,13 @@ def diamond_search_motion_estimation(
                         _get_large_diamond_offsets(),
                         cost_fn,
                     )
+                    comparisons += comps
                     if best_x == search_center_x and best_y == search_center_y:
                         break
                     search_center_x, search_center_y = best_x, best_y
 
             while True:
-                best_x, best_y, best_cost = _find_best_match(
+                best_x, best_y, best_cost, comps = _find_best_match(
                     ref_block,
                     target,
                     x,
@@ -193,6 +200,7 @@ def diamond_search_motion_estimation(
                     _get_small_diamond_offsets(),
                     cost_fn,
                 )
+                comparisons += comps
                 if best_x == search_center_x and best_y == search_center_y:
                     break
                 search_center_x, search_center_y = best_x, best_y
@@ -209,4 +217,8 @@ def diamond_search_motion_estimation(
     if save_path is not None:
         _save_motion_vectors(motion_vectors, save_path)
 
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+    stats = {"comparisons": comparisons, "time_ms": elapsed_ms}
+    if return_stats:
+        return motion_vectors, stats
     return motion_vectors

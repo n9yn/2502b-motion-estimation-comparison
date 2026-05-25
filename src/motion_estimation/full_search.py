@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any
+import time
 
 import cv2
 import numpy as np
@@ -51,7 +52,8 @@ def full_search_motion_estimation(
     search_range: int = 8,
     metric: str = "mad",
     save_path: str | Path | None = None,
-) -> list[MotionVector]:
+    return_stats: bool = False,
+) -> list[MotionVector] | tuple[list[MotionVector], dict]:
     """Compute motion vectors using a full search algorithm."""
     reference = _normalize_frame(reference_frame)
     target = _normalize_frame(target_frame)
@@ -62,13 +64,15 @@ def full_search_motion_estimation(
     height, width = reference.shape
     cost_fn = _get_cost_function(metric)
     motion_vectors: list[MotionVector] = []
+    comparisons = 0
+    t0 = time.perf_counter()
 
     for y in range(0, height - block_size + 1, block_size):
         for x in range(0, width - block_size + 1, block_size):
             reference_block = reference[y : y + block_size, x : x + block_size]
-            best_cost = float("inf")
             best_dx = 0
             best_dy = 0
+            best_cost = float("inf")
 
             for dy in range(-search_range, search_range + 1):
                 for dx in range(-search_range, search_range + 1):
@@ -86,6 +90,7 @@ def full_search_motion_estimation(
                         candidate_y : candidate_y + block_size,
                         candidate_x : candidate_x + block_size,
                     ]
+                    comparisons += 1
                     cost = cost_fn(reference_block, target_block)
                     if cost < best_cost:
                         best_cost = cost
@@ -97,4 +102,8 @@ def full_search_motion_estimation(
     if save_path is not None:
         _save_motion_vectors(motion_vectors, save_path)
 
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+    stats = {"comparisons": comparisons, "time_ms": elapsed_ms}
+    if return_stats:
+        return motion_vectors, stats
     return motion_vectors

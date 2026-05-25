@@ -10,7 +10,7 @@ from src.motion_estimation.full_search import full_search_motion_estimation
 from src.motion_estimation.motion_vector import MotionVector
 
 
-def test_diamond_search_returns_list() -> None:
+def test_diamond_search_returns_motion_vectors() -> None:
     """Diamond Search should return a list of motion vectors."""
     reference = np.zeros((16, 16), dtype=np.uint8)
     target = np.zeros((16, 16), dtype=np.uint8)
