@@ -8,14 +8,28 @@ import cv2
 
 def convert_to_grayscale(frame: Any) -> Any:
     """Convert a color frame to grayscale."""
-    # TODO: implement grayscale conversion using OpenCV
-    print("[TODO] Converting frame to grayscale")
-    return frame
+    if frame is None:
+        raise ValueError("Frame is None")
+    return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 
 def batch_convert_directory(input_dir: str | Path, output_dir: str | Path) -> None:
     """Convert all frames in a directory to grayscale and save them."""
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    input_path = Path(input_dir)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
 
-    # TODO: iterate over input frames, convert each to grayscale, and save to output_dir
-    print(f"[TODO] Converting frames from {input_dir} to grayscale in {output_dir}")
+    supported_extensions = {".png", ".jpg", ".jpeg"}
+    frame_files = sorted(
+        [path for path in input_path.iterdir() if path.is_file() and path.suffix.lower() in supported_extensions]
+    )
+
+    for frame_file in frame_files:
+        frame = cv2.imread(str(frame_file))
+        if frame is None:
+            continue
+
+        gray_frame = convert_to_grayscale(frame)
+        output_file = output_path / frame_file.name
+        if not cv2.imwrite(str(output_file), gray_frame):
+            raise IOError(f"Failed to write grayscale frame: {output_file}")
