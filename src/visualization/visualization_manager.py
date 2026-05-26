@@ -87,7 +87,7 @@ class VisualizationManager:
         frame_with_vectors = overlay_vectors_on_frame(frame, vectors)
         output_path = self.vector_dir / f"{method_name.lower().replace(' ', '_')}_overlay_frame_{frame_idx:04d}.png"
         cv2.imwrite(str(output_path), frame_with_vectors)
-        print(f"✓ Vector overlay saved to {output_path}")
+        print(f"OK Vector overlay saved to {output_path}")
         return output_path
     
     def save_vector_comparison(

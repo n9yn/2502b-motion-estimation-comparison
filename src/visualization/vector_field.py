@@ -60,7 +60,7 @@ def plot_motion_vectors(
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
-    print(f"✓ Plotted {len(motion_vectors)} motion vectors to {output_path}")
+    print(f"OK Plotted {len(motion_vectors)} motion vectors to {output_path}")
 
 
 def overlay_vectors_on_frame(
@@ -183,7 +183,7 @@ def plot_vector_field_comparison(
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
-    print(f"✓ Comparison plot saved to {output_path}")
+    print(f"OK Comparison plot saved to {output_path}")
 
 
 def save_vector_field_visualization(

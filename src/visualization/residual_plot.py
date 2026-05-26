@@ -52,7 +52,7 @@ def plot_residual_frame(
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
-    print(f"✓ Residual frame saved to {output_path}")
+    print(f"OK Residual frame saved to {output_path}")
 
 
 def plot_residual_comparison(
@@ -110,4 +110,4 @@ def plot_residual_comparison(
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
-    print(f"✓ Residual comparison plot saved to {output_path}")
+    print(f"OK Residual comparison plot saved to {output_path}")

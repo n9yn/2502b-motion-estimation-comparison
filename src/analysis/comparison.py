@@ -68,14 +68,14 @@ class ComparisonResult:
         print(f"Full Search : {self.full_search.execution_time_ms:7.2f}ms")
         print(f"Diamond Search: {self.diamond_search.execution_time_ms:7.2f}ms")
         speedup = self.get_speedup()
-        print(f"✓ Diamond Search Speedup: {speedup:.2f}x faster")
+        print(f"OK Diamond Search Speedup: {speedup:.2f}x faster")
 
         print("\n[2] SEARCH COMPLEXITY Comparison")
         print("-" * 100)
         print(f"Full Search : {self.full_search.comparisons:7d} comparisons")
         print(f"Diamond Search: {self.diamond_search.comparisons:7d} comparisons")
         reduction = self.get_complexity_reduction()
-        print(f"✓ Complexity Reduction: {reduction:.1f}% fewer comparisons")
+        print(f"OK Complexity Reduction: {reduction:.1f}% fewer comparisons")
 
         print("\n[3] MOTION ACCURACY Comparison")
         print("-" * 100)
@@ -83,11 +83,11 @@ class ComparisonResult:
         print(f"Diamond Search  - MSE: {self.diamond_search.mse:10.2f}, PSNR: {self.diamond_search.psnr:7.2f}dB")
         mse_loss = self.get_accuracy_loss()
         if abs(mse_loss) < 0.01:
-            print("✓ Nearly identical accuracy (MSE difference < 0.01)")
+            print("OK Nearly identical accuracy (MSE difference < 0.01)")
         elif mse_loss > 0:
-            print(f"⚠ Accuracy Loss: {mse_loss:.2f} (Diamond Search higher MSE)")
+            print(f"WARNING: Accuracy Loss: {mse_loss:.2f} (Diamond Search higher MSE)")
         else:
-            print(f"✓ Accuracy Gain: {abs(mse_loss):.2f} (Diamond Search better)")
+            print(f"OK Accuracy Gain: {abs(mse_loss):.2f} (Diamond Search better)")
 
         print("\n[4] RESIDUAL ENERGY Comparison")
         print("-" * 100)
@@ -96,7 +96,7 @@ class ComparisonResult:
         energy_ratio = self.get_energy_ratio()
         diff = abs(self.full_search.residual_energy - self.diamond_search.residual_energy)
         pct_diff = (diff / self.full_search.residual_energy * 100) if self.full_search.residual_energy > 0 else 0
-        print(f"✓ Energy Difference: {diff:.2f} ({pct_diff:.1f}%)")
+        print(f"OK Energy Difference: {diff:.2f} ({pct_diff:.1f}%)")
 
         print("\n[5] OBSERVATIONS & CONCLUSIONS")
         print("-" * 100)
@@ -108,40 +108,40 @@ class ComparisonResult:
 
         speedup = self.get_speedup()
         if speedup > 5:
-            observations.append(f"• Diamond Search is SIGNIFICANTLY FASTER ({speedup:.1f}x speedup)")
+            observations.append(f"- Diamond Search is SIGNIFICANTLY FASTER ({speedup:.1f}x speedup)")
         elif speedup > 2:
-            observations.append(f"• Diamond Search is moderately faster ({speedup:.1f}x speedup)")
+            observations.append(f"- Diamond Search is moderately faster ({speedup:.1f}x speedup)")
         else:
-            observations.append(f"• Diamond Search has modest speedup ({speedup:.1f}x)")
+            observations.append(f"- Diamond Search has modest speedup ({speedup:.1f}x)")
 
         complexity_reduction = self.get_complexity_reduction()
         observations.append(
-            f"• Complexity reduction of {complexity_reduction:.1f}% "
+            f"- Complexity reduction of {complexity_reduction:.1f}% "
             f"({self.diamond_search.comparisons:,d} vs {self.full_search.comparisons:,d} comparisons)"
         )
 
         mse_loss = self.get_accuracy_loss()
         if abs(mse_loss) < 0.01:
-            observations.append("• Motion accuracy is VIRTUALLY IDENTICAL between algorithms")
+            observations.append("- Motion accuracy is VIRTUALLY IDENTICAL between algorithms")
         elif mse_loss < 0:
-            observations.append(f"• Diamond Search produced BETTER motion vectors (MSE {abs(mse_loss):.2f} lower)")
+            observations.append(f"- Diamond Search produced BETTER motion vectors (MSE {abs(mse_loss):.2f} lower)")
         else:
             loss_pct = (mse_loss / self.full_search.mse * 100) if self.full_search.mse > 0 else 0
-            observations.append(f"• Diamond Search has slight accuracy loss ({loss_pct:.1f}% higher MSE)")
+            observations.append(f"- Diamond Search has slight accuracy loss ({loss_pct:.1f}% higher MSE)")
 
         energy_ratio = self.get_energy_ratio()
         energy_diff = abs(self.full_search.residual_energy - self.diamond_search.residual_energy)
         energy_pct = (energy_diff / self.full_search.residual_energy * 100) if self.full_search.residual_energy > 0 else 0
 
         if abs(energy_ratio - 1.0) < 0.05:
-            observations.append("• Residual energy is SUBSTANTIALLY SIMILAR (~same compression efficiency)")
+            observations.append("- Residual energy is SUBSTANTIALLY SIMILAR (~same compression efficiency)")
         elif energy_ratio < 0.95:
-            observations.append(f"• Diamond Search has LOWER energy ({energy_pct:.1f}% difference) - better compression")
+            observations.append(f"- Diamond Search has LOWER energy ({energy_pct:.1f}% difference) - better compression")
         else:
-            observations.append(f"• Diamond Search has slightly HIGHER energy ({energy_pct:.1f}% difference)")
+            observations.append(f"- Diamond Search has slightly HIGHER energy ({energy_pct:.1f}% difference)")
 
         # Efficiency summary
-        observations.append("\n• RECOMMENDATION:")
+        observations.append("\n- RECOMMENDATION:")
         if speedup > 3 and mse_loss <= 0.1:
             observations.append(
                 "  Diamond Search is RECOMMENDED - excellent speedup with minimal accuracy trade-off"
