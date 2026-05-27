@@ -20,17 +20,14 @@ def _to_grayscale(frame: Any) -> np.ndarray:
     raise ValueError("Unsupported frame type for residual generation")
 
 
-def generate_residual_frame(
+def reconstruct_frame(
     reference_frame: Any,
-    target_frame: Any,
     motion_vectors: list[MotionVector],
     block_size: int = 16,
-) -> Any:
-    """Generate a residual frame from reference and target frames."""
+) -> np.ndarray:
+    """Reconstruct the predicted frame using motion vectors from the reference."""
     reference = _to_grayscale(reference_frame)
-    target = _to_grayscale(target_frame)
-    residual = np.zeros_like(target)
-    predicted = np.zeros_like(target)
+    predicted = np.zeros(reference.shape, dtype=np.int16)
 
     for vector in motion_vectors:
         src_x = vector.x
@@ -50,7 +47,20 @@ def generate_residual_frame(
         ):
             continue
 
-        predicted[dst_y:dst_y + block_size, dst_x:dst_x + block_size] = reference[src_y:src_y + block_size, src_x:src_x + block_size]
+        block = reference[src_y:src_y + block_size, src_x:src_x + block_size].astype(np.int16)
+        predicted[dst_y:dst_y + block_size, dst_x:dst_x + block_size] = block
 
-    residual = cv2.absdiff(target, predicted)
+    return predicted
+
+
+def generate_residual_frame(
+    reference_frame: Any,
+    target_frame: Any,
+    motion_vectors: list[MotionVector],
+    block_size: int = 16,
+) -> np.ndarray:
+    """Generate a signed residual frame from reference and target frames."""
+    target = _to_grayscale(target_frame)
+    predicted = reconstruct_frame(reference_frame, motion_vectors, block_size=block_size)
+    residual = target.astype(np.int16) - predicted
     return residual

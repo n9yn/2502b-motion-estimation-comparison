@@ -146,3 +146,25 @@ The final project workflow writes:
 - Triệu Tiến Nguyên
 - Nguyễn Lâm Tuấn Linh
 
+## Quickstart
+
+- Create and activate the Python virtual environment (Python 3.10+ recommended):
+
+```bash
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+- Run tests:
+
+```bash
+python -m pytest -q
+```
+
+## Recent Changes
+
+- Added optional `save_path` for motion vector exporters in `src/motion_estimation`.
+- Fixed a signature bug in `diamond_search` and improved metric handling.
+- Micro-optimized block-matching metrics and improved vector visualizations.
+

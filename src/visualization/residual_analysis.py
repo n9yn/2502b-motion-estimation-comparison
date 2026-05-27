@@ -12,7 +12,7 @@ from src.motion_estimation.full_search import full_search_motion_estimation
 from src.motion_estimation.diamond_search import diamond_search_motion_estimation
 from src.residual.residual_generator import generate_residual_frame
 from src.residual.residual_energy import calculate_residual_energy
-from src.utils.metrics import compute_mse, compute_psnr
+from src.utils.metrics import compute_mse_from_residual, compute_psnr_from_residual
 from src.visualization.comparison_chart import plot_residual_energy_series
 
 
@@ -75,8 +75,8 @@ def analyze_residuals(
 
         energy_fs = calculate_residual_energy(residual_fs)
         energy_ds = calculate_residual_energy(residual_diamond)
-        mse_fs = compute_mse(tgt_gray, residual_fs)
-        psnr_fs = compute_psnr(tgt_gray, residual_fs)
+        mse_fs = compute_mse_from_residual(residual_fs)
+        psnr_fs = compute_psnr_from_residual(residual_fs)
 
         rows.append(
             {

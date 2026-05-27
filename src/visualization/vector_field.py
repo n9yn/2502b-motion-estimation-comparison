@@ -42,15 +42,13 @@ def plot_motion_vectors(
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
     ax.imshow(display_frame, cmap='gray' if len(display_frame.shape) == 2 else None)
     
-    # Plot motion vectors as arrows
-    for mv in motion_vectors:
-        # Draw arrows from (x, y) to (x + dx*scale, y + dy*scale)
-        ax.arrow(
-            mv.x, mv.y,
-            mv.dx * scale, mv.dy * scale,
-            head_width=3, head_length=2,
-            fc='red', ec='red', alpha=0.7, linewidth=1.5
-        )
+    # Plot motion vectors using quiver for clarity and performance
+    if motion_vectors:
+        X = [mv.x for mv in motion_vectors]
+        Y = [mv.y for mv in motion_vectors]
+        U = [mv.dx * scale for mv in motion_vectors]
+        V = [mv.dy * scale for mv in motion_vectors]
+        ax.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale=1, color='red', alpha=0.8)
     
     ax.set_title(title, fontsize=14, fontweight='bold')
     ax.set_xlabel('X (pixels)')

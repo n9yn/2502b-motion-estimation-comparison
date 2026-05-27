@@ -5,7 +5,7 @@ from typing import Any
 
 import numpy as np
 
-from src.utils.metrics import compute_mse, compute_psnr
+from src.utils.metrics import compute_mse_from_residual, compute_psnr_from_residual
 
 
 @dataclass
@@ -175,10 +175,10 @@ def create_comparison_result(
     vectors_diamond, stats_diamond = vectors_diamond_with_stats
 
     # Compute accuracy metrics
-    mse_fs = compute_mse(frame1, residual_fs)
-    mse_diamond = compute_mse(frame1, residual_diamond)
-    psnr_fs = compute_psnr(frame1, residual_fs)
-    psnr_diamond = compute_psnr(frame1, residual_diamond)
+    mse_fs = compute_mse_from_residual(residual_fs)
+    mse_diamond = compute_mse_from_residual(residual_diamond)
+    psnr_fs = compute_psnr_from_residual(residual_fs)
+    psnr_diamond = compute_psnr_from_residual(residual_diamond)
 
     fs_stats = AlgorithmStats(
         name="Full Search",

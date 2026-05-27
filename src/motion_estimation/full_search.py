@@ -1,11 +1,14 @@
 """Full Search motion estimation algorithm."""
 
 from typing import Any
+from pathlib import Path
+import csv
 import time
 
 import cv2
 import numpy as np
 
+from src.motion_estimation.block_matching import compute_mad, compute_mse, compute_sad
 from src.motion_estimation.motion_vector import MotionVector
 
 
@@ -21,8 +24,15 @@ def _to_grayscale(frame: Any) -> np.ndarray:
     raise ValueError("Unsupported frame type for motion estimation")
 
 
-def _block_sad(block_a: np.ndarray, block_b: np.ndarray) -> int:
-    return int(np.sum(np.abs(block_a.astype(np.int16) - block_b.astype(np.int16))))
+def _select_block_metric(metric: str, block_a: np.ndarray, block_b: np.ndarray) -> float:
+    metric = metric.lower()
+    if metric == "sad":
+        return compute_sad(block_a, block_b)
+    if metric == "mad":
+        return compute_mad(block_a, block_b)
+    if metric == "mse":
+        return compute_mse(block_a, block_b)
+    raise ValueError(f"Unsupported block matching metric: {metric}")
 
 
 def full_search_motion_estimation(
@@ -30,7 +40,9 @@ def full_search_motion_estimation(
     target_frame: Any,
     block_size: int = 16,
     search_range: int = 8,
+    metric: str = "sad",
     return_stats: bool = False,
+    save_path: str | Path | None = None,
 ) -> list[MotionVector] | tuple[list[MotionVector], dict]:
     """Compute motion vectors using a full search algorithm.
 
@@ -40,6 +52,10 @@ def full_search_motion_estimation(
     reference = _to_grayscale(reference_frame)
     target = _to_grayscale(target_frame)
 
+    # Convert once to signed integers to avoid repeated casts during SAD evaluation
+    reference_int = reference.astype(np.int16)
+    target_int = target.astype(np.int16)
+
     height, width = reference.shape
     motion_vectors: list[MotionVector] = []
 
@@ -48,28 +64,25 @@ def full_search_motion_estimation(
 
     for y in range(0, height - block_size + 1, block_size):
         for x in range(0, width - block_size + 1, block_size):
-            reference_block = reference[y:y + block_size, x:x + block_size]
+            reference_block = reference_int[y:y + block_size, x:x + block_size]
             best_sad = float("inf")
             best_dx = 0
             best_dy = 0
 
-            for dy in range(-search_range, search_range + 1):
-                for dx in range(-search_range, search_range + 1):
+            min_dx = max(-search_range, -x)
+            max_dx = min(search_range, width - block_size - x)
+            min_dy = max(-search_range, -y)
+            max_dy = min(search_range, height - block_size - y)
+
+            for dy in range(min_dy, max_dy + 1):
+                for dx in range(min_dx, max_dx + 1):
                     candidate_x = x + dx
                     candidate_y = y + dy
-                    if (
-                        candidate_x < 0
-                        or candidate_y < 0
-                        or candidate_x + block_size > width
-                        or candidate_y + block_size > height
-                    ):
-                        continue
-
-                    target_block = target[candidate_y:candidate_y + block_size, candidate_x:candidate_x + block_size]
-                    sad = _block_sad(reference_block, target_block)
+                    target_block = target_int[candidate_y:candidate_y + block_size, candidate_x:candidate_x + block_size]
+                    distance = _select_block_metric(metric, reference_block, target_block)
                     comparisons += 1
-                    if sad < best_sad:
-                        best_sad = sad
+                    if distance < best_sad:
+                        best_sad = distance
                         best_dx = dx
                         best_dy = dy
 
@@ -78,6 +91,15 @@ def full_search_motion_estimation(
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
     stats = {"comparisons": comparisons, "time_ms": elapsed_ms}
     print(f"✓ Full Search generated {len(motion_vectors)} motion vectors (comparisons={comparisons}, time={elapsed_ms:.1f}ms)")
+
+    if save_path is not None:
+        p = Path(save_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with p.open("w", newline="") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(["x", "y", "dx", "dy"])
+            for mv in motion_vectors:
+                writer.writerow(mv.to_tuple())
 
     if return_stats:
         return motion_vectors, stats
