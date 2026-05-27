@@ -12,6 +12,10 @@ from src.residual.residual_energy import save_residual_statistics
 from src.residual.residual_generator import generate_residual_frame
 from src.utils.config import Config
 from src.utils.file_handler import resolve_working_paths
+from src.visualization.comparison_chart import (
+    plot_runtime_comparison,
+    plot_energy_comparison,
+)
 
 
 def _resolve_working_paths(output_root: str | Path) -> dict[str, Path]:
@@ -121,6 +125,22 @@ def run_motion_estimation_workflow(
     stats = save_residual_statistics(residual_frame, residual_stats_path)
     _save_residual_image(residual_frame, residual_image_path)
 
+    # Generate comparison charts
+    runtime_chart_path = paths["charts"] / "runtime_comparison.png"
+    energy_chart_path = paths["charts"] / "energy_comparison.png"
+    
+    runtime_data = {
+        "Full Search": fs_stats.get("time_ms", 0),
+        "Diamond Search": ds_stats.get("time_ms", 0),
+    }
+    plot_runtime_comparison(runtime_data, runtime_chart_path)
+    
+    energy_data = {
+        "Full Search": stats.get("energy", 0),
+        "Diamond Search": stats.get("energy", 0),
+    }
+    plot_energy_comparison(energy_data, energy_chart_path)
+
     return {
         "video_path": str(source_video),
         "extracted_path": str(extracted_path),
@@ -130,6 +150,8 @@ def run_motion_estimation_workflow(
         "ds_vector_path": str(ds_vector_path),
         "residual_image_path": str(residual_image_path),
         "residual_stats_path": str(residual_stats_path),
+        "runtime_chart_path": str(runtime_chart_path),
+        "energy_chart_path": str(energy_chart_path),
         "fs_vectors": full_vectors,
         "fs_stats": fs_stats,
         "diamond_vectors": diamond_vectors,
