@@ -11,10 +11,11 @@ from src.motion_estimation.diamond_search import diamond_search_motion_estimatio
 from src.residual.residual_generator import generate_residual_frame
 from src.residual.residual_energy import calculate_residual_energy
 from src.visualization.visualization_manager import VisualizationManager
+from src.analysis.comparison import create_comparison_result
+from src.analysis.reporting import create_experiment_tables
 from src.visualization.comparison_chart import plot_runtime_comparison, plot_energy_comparison
 from src.utils.config import Config
 from src.utils.file_handler import resolve_working_paths
-from src.analysis.comparison import create_comparison_result
 
 
 def main() -> None:
@@ -30,14 +31,14 @@ def main() -> None:
     # Extract frames from video
     print("\n[1/6] Extracting frames from video...")
     extract_frames_from_video(sample_video, Config.EXTRACTED_FRAMES_DIR)
-    print(f"OK Frames extracted to {Config.EXTRACTED_FRAMES_DIR}")
+    print(f"✓ Frames extracted to {Config.EXTRACTED_FRAMES_DIR}")
 
     # Load sample frames for analysis
     frames_dir = Path(Config.EXTRACTED_FRAMES_DIR)
     frame_files = sorted(frames_dir.glob("*.png"))[:2]
 
     if len(frame_files) < 2:
-        print("WARNING: Could not find enough frames for comparison")
+        print("⚠ Warning: Could not find enough frames for comparison")
         return
 
     # Load frames
@@ -46,12 +47,12 @@ def main() -> None:
     frame2_color = cv2.imread(str(frame_files[1]), cv2.IMREAD_COLOR)
 
     if frame1_color is None or frame2_color is None:
-        print("ERROR: Could not load frames")
+        print("✗ Error: Could not load frames")
         return
 
     frame1 = convert_to_grayscale(frame1_color)
     frame2 = convert_to_grayscale(frame2_color)
-    print(f"OK Loaded frames with shape {frame1.shape}")
+    print(f"✓ Loaded frames with shape {frame1.shape}")
 
     # Run motion estimation algorithms with statistics
     print("\n[3/6] Running motion estimation algorithms...")
@@ -63,7 +64,7 @@ def main() -> None:
         Config.SEARCH_RANGE,
         return_stats=True,
     )
-
+    
     print("  Running Diamond Search...")
     diamond_vectors, diamond_stats = diamond_search_motion_estimation(
         frame1,
@@ -72,9 +73,9 @@ def main() -> None:
         Config.SEARCH_RANGE,
         return_stats=True,
     )
-
-    print(f"OK Full Search: {len(full_vectors)} motion vectors")
-    print(f"OK Diamond Search: {len(diamond_vectors)} motion vectors")
+    
+    print(f"✓ Full Search: {len(full_vectors)} motion vectors")
+    print(f"✓ Diamond Search: {len(diamond_vectors)} motion vectors")
 
     # Generate residual frames
     print("\n[4/6] Generating residuals and calculating energy...")
@@ -84,8 +85,8 @@ def main() -> None:
     energy_fs = calculate_residual_energy(residual_fs)
     energy_diamond = calculate_residual_energy(residual_diamond)
 
-    print(f"OK Full Search residual energy: {energy_fs:.2f}")
-    print(f"OK Diamond Search residual energy: {energy_diamond:.2f}")
+    print(f"✓ Full Search residual energy: {energy_fs:.2f}")
+    print(f"✓ Diamond Search residual energy: {energy_diamond:.2f}")
 
     # Create comprehensive comparison results
     print("\n[5/6] Analyzing and comparing results...")
@@ -115,7 +116,7 @@ def main() -> None:
         frame_idx=0,
     )
 
-    print(f"\nOK Saved {len(results)} visualization files")
+    print(f"\n✓ Saved {len(results)} visualization files")
 
     # Save comparison charts with actual measured data
     print("\nGenerating comparison charts...")
@@ -131,6 +132,18 @@ def main() -> None:
     vis_manager.save_runtime_comparison(runtime_data)
     vis_manager.save_energy_comparison(energy_data)
 
+    # Generate experiment tables and organized reports
+    print("\nOrganizing experimental result tables...")
+    table_outputs = create_experiment_tables(
+        comparison,
+        {
+            "Full Search": full_vectors,
+            "Diamond Search": diamond_vectors,
+        },
+        Config.REPORTS_DIR,
+    )
+    print(f"✓ Saved experiment tables and summary to {Config.REPORTS_DIR}")
+
     # Print summary
     print("\n" + "=" * 60)
     print("Visualization Summary")
@@ -140,7 +153,7 @@ def main() -> None:
         print(f"  {category.capitalize():20} : {count:3} files")
 
     print("\nOutput directory:", Config.OUTPUT_DIR / "visualizations")
-    print("\nOK Motion estimation comparison workflow completed successfully!")
+    print("\n✓ Motion estimation comparison workflow completed successfully!")
     print("=" * 60)
 
 

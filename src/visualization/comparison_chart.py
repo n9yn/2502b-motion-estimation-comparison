@@ -46,7 +46,7 @@ def plot_runtime_comparison(
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
-    print(f"OK Runtime comparison chart saved to {output_path}")
+    print(f"✓ Runtime comparison chart saved to {output_path}")
 
 
 def plot_energy_comparison(
@@ -88,7 +88,7 @@ def plot_energy_comparison(
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
-    print(f"OK Energy comparison chart saved to {output_path}")
+    print(f"✓ Energy comparison chart saved to {output_path}")
 
 
 def plot_vector_statistics(
@@ -144,7 +144,7 @@ def plot_vector_statistics(
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
-    print(f"OK Vector statistics chart saved to {output_path}")
+    print(f"✓ Vector statistics chart saved to {output_path}")
 
 
 def plot_metrics_comparison(
@@ -189,7 +189,7 @@ def plot_metrics_comparison(
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
-    print(f"OK Metrics comparison chart saved to {output_path}")
+    print(f"✓ Metrics comparison chart saved to {output_path}")
 
 
 def plot_residual_energy_series(
@@ -233,4 +233,4 @@ def plot_residual_energy_series(
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"OK Residual energy series chart saved to {output_path}")
+    print(f"✓ Residual energy series chart saved to {output_path}")

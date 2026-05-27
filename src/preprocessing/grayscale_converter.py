@@ -10,15 +10,15 @@ import numpy as np
 def convert_to_grayscale(frame: Any) -> Any:
     """Convert a color frame to grayscale."""
     if frame is None:
-        raise ValueError("Frame is None")
+        return frame
 
-    array = np.asarray(frame)
-    if array.ndim == 2:
-        return array
-    if array.ndim == 3 and array.shape[2] == 3:
-        return cv2.cvtColor(array, cv2.COLOR_BGR2GRAY)
+    if isinstance(frame, np.ndarray):
+        if frame.ndim == 2:
+            return frame
+        if frame.ndim == 3 and frame.shape[2] == 3:
+            return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    raise ValueError("Unsupported frame format for grayscale conversion")
+    return frame
 
 
 def batch_convert_directory(input_dir: str | Path, output_dir: str | Path) -> None:
@@ -27,17 +27,13 @@ def batch_convert_directory(input_dir: str | Path, output_dir: str | Path) -> No
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    supported_extensions = {".png", ".jpg", ".jpeg"}
-    frame_files = sorted(
-        [path for path in input_path.iterdir() if path.is_file() and path.suffix.lower() in supported_extensions]
-    )
-
-    for frame_file in frame_files:
-        frame = cv2.imread(str(frame_file))
+    for frame_path in sorted(input_path.glob("*.png")):
+        frame = cv2.imread(str(frame_path))
         if frame is None:
             continue
 
         gray_frame = convert_to_grayscale(frame)
-        output_file = output_path / frame_file.name
-        if not cv2.imwrite(str(output_file), gray_frame):
-            raise IOError(f"Failed to write grayscale frame: {output_file}")
+        output_file = output_path / frame_path.name
+        cv2.imwrite(str(output_file), gray_frame)
+
+    print(f"✓ Converted {len(list(output_path.glob('*.png')))} frames from {input_path} to grayscale in {output_path}")
