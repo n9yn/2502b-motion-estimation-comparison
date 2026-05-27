@@ -3,6 +3,7 @@ from pathlib import Path
 import time
 import json
 import hashlib
+import shutil
 
 import streamlit as st
 
@@ -18,6 +19,33 @@ def _generate_unique_key(file_path: Path, prefix: str = "dl") -> str:
     rel_path = str(file_path).replace("\\", "/")
     hash_suffix = hashlib.md5(rel_path.encode()).hexdigest()[:8]
     return f"{prefix}_{hash_suffix}"
+
+
+def _cleanup_old_streamlit_runs(outputs_dir: Path = Path("outputs"), keep_latest: int = 0) -> None:
+    """Clean up old streamlit run directories.
+    
+    Args:
+        outputs_dir: Root outputs directory
+        keep_latest: Number of latest runs to keep (0 = remove all)
+    """
+    if not outputs_dir.exists():
+        return
+    
+    streamlit_dirs = sorted(
+        [d for d in outputs_dir.iterdir() if d.is_dir() and d.name.startswith("streamlit_")],
+        key=lambda d: d.name,
+        reverse=True
+    )
+    
+    # Keep the specified number of latest runs, delete the rest
+    dirs_to_delete = streamlit_dirs[keep_latest:]
+    
+    for dir_path in dirs_to_delete:
+        try:
+            shutil.rmtree(dir_path)
+            print(f"✓ Cleaned up old run: {dir_path.name}")
+        except Exception as e:
+            print(f"⚠ Failed to clean up {dir_path.name}: {e}")
 
 
 def show_dashboard() -> None:
@@ -62,6 +90,9 @@ def show_dashboard() -> None:
 
     # Controls and run
     if params["run"] and uploaded is not None:
+        # Clean up old streamlit runs before starting new one
+        _cleanup_old_streamlit_runs(outputs_dir=Path("outputs"), keep_latest=0)
+        
         # Create output root for this run
         out_root = Path("outputs") / f"streamlit_{int(time.time())}"
         ensure_dir(out_root)
