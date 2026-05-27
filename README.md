@@ -108,6 +108,14 @@ The demo workflow writes outputs to:
 - `outputs/demo_frames/`
 - `outputs/demo_screenshots/`
 
+Run the main comparison workflow to generate algorithm comparison tables:
+```bash
+python -m src.main
+```
+
+The main comparison workflow writes experiment reports to:
+- `outputs/reports/`
+
 ## Expected Outputs
 - Motion vector files for FS and Diamond Search
 - Residual frame images

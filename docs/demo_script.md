@@ -14,7 +14,11 @@ This demo script provides a workflow to generate video clips, select representat
    - `outputs/demo_videos/` for auto-generated demo clips
    - `outputs/demo_frames/` for representative selected frames
    - `outputs/demo_screenshots/` for motion estimation comparison screenshots
-5. Optionally run the main comparison workflow:
+5. Run the main comparison workflow to generate performance tables:
+   ```bash
+   python -m src.main
+   ```
+6. Verify generated experiment tables in `outputs/reports/`.
    ```bash
    python -m src.main
    ```

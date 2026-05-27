@@ -11,10 +11,11 @@ from src.motion_estimation.diamond_search import diamond_search_motion_estimatio
 from src.residual.residual_generator import generate_residual_frame
 from src.residual.residual_energy import calculate_residual_energy
 from src.visualization.visualization_manager import VisualizationManager
+from src.analysis.comparison import create_comparison_result
+from src.analysis.reporting import create_experiment_tables
 from src.visualization.comparison_chart import plot_runtime_comparison, plot_energy_comparison
 from src.utils.config import Config
 from src.utils.file_handler import resolve_working_paths
-from src.analysis.comparison import create_comparison_result
 
 
 def main() -> None:
@@ -130,6 +131,18 @@ def main() -> None:
 
     vis_manager.save_runtime_comparison(runtime_data)
     vis_manager.save_energy_comparison(energy_data)
+
+    # Generate experiment tables and organized reports
+    print("\nOrganizing experimental result tables...")
+    table_outputs = create_experiment_tables(
+        comparison,
+        {
+            "Full Search": full_vectors,
+            "Diamond Search": diamond_vectors,
+        },
+        Config.REPORTS_DIR,
+    )
+    print(f"✓ Saved experiment tables and summary to {Config.REPORTS_DIR}")
 
     # Print summary
     print("\n" + "=" * 60)
