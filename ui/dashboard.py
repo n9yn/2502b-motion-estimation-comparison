@@ -2,6 +2,7 @@
 from pathlib import Path
 import time
 import json
+import hashlib
 
 import streamlit as st
 
@@ -10,6 +11,13 @@ from ui.helpers import save_uploaded_temp, get_video_metadata, ensure_dir
 from ui.visualizations import save_vector_visualizations
 
 from src.workflow import run_motion_estimation_workflow
+
+
+def _generate_unique_key(file_path: Path, prefix: str = "dl") -> str:
+    """Generate a unique, safe Streamlit key from a file path."""
+    rel_path = str(file_path).replace("\\", "/")
+    hash_suffix = hashlib.md5(rel_path.encode()).hexdigest()[:8]
+    return f"{prefix}_{hash_suffix}"
 
 
 def show_dashboard() -> None:
@@ -160,10 +168,17 @@ def show_dashboard() -> None:
                 if mv_dir.exists():
                     csvs = sorted(list(mv_dir.glob("**/*.csv")))
                     if csvs:
+                        st.write(f"**Found {len(csvs)} motion vector file(s):**")
                         for csvf in csvs:
-                            st.write(csvf.relative_to(output_dir))
+                            rel_path = csvf.relative_to(output_dir)
+                            st.write(f"📄 {rel_path}")
                             with open(csvf, "rb") as fh:
-                                st.download_button(f"Download {csvf.name}", data=fh, file_name=csvf.name, key=f"dl_mv_{csvf.name}")
+                                st.download_button(
+                                    f"Download {csvf.name}",
+                                    data=fh,
+                                    file_name=csvf.name,
+                                    key=_generate_unique_key(csvf, "dl_csv")
+                                )
                     else:
                         st.info("No motion vector CSV files found.")
                 else:
@@ -175,17 +190,41 @@ def show_dashboard() -> None:
                 if logs_dir.exists():
                     files = sorted(list(logs_dir.glob("**/*.*")))
                     if files:
+                        st.write(f"**Found {len(files)} log file(s):**")
                         for f in files:
+                            rel_path = f.relative_to(output_dir)
                             if f.suffix.lower() in [".json", ".txt", ".log", ".csv"]:
-                                st.write(f.relative_to(output_dir))
+                                st.write(f"📋 {rel_path}")
                                 try:
-                                    st.code(f.read_text(encoding='utf-8'))
+                                    content = f.read_text(encoding='utf-8')
+                                    if len(content) < 5000:
+                                        st.code(content)
+                                    else:
+                                        st.text(f"[Content too large to display; {len(content)} bytes]")
+                                        with open(f, "rb") as fh:
+                                            st.download_button(
+                                                f"Download {f.name}",
+                                                data=fh,
+                                                file_name=f.name,
+                                                key=_generate_unique_key(f, "dl_log")
+                                            )
                                 except Exception:
                                     with open(f, "rb") as fh:
-                                        st.download_button(f"Download {f.name}", data=fh, file_name=f.name, key=f"dl_log_{f.name}")
+                                        st.download_button(
+                                            f"Download {f.name}",
+                                            data=fh,
+                                            file_name=f.name,
+                                            key=_generate_unique_key(f, "dl_log")
+                                        )
                             else:
+                                st.write(f"📁 {rel_path}")
                                 with open(f, "rb") as fh:
-                                    st.download_button(f"Download {f.name}", data=fh, file_name=f.name, key=f"dl_log_{f.name}")
+                                    st.download_button(
+                                        f"Download {f.name}",
+                                        data=fh,
+                                        file_name=f.name,
+                                        key=_generate_unique_key(f, "dl_log")
+                                    )
                     else:
                         st.info("No logs found.")
                 else:
