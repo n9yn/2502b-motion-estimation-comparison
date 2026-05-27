@@ -98,20 +98,22 @@ def run_motion_estimation_workflow(
     reference_frame = _load_gray_frame(frame_paths[0])
     target_frame = _load_gray_frame(frame_paths[1])
 
-    full_vectors = full_search_motion_estimation(
+    full_vectors, fs_stats = full_search_motion_estimation(
         reference_frame,
         target_frame,
         block_size=block_size,
         search_range=search_range,
         metric="mad",
+        return_stats=True,
         save_path=fs_vector_path,
     )
-    diamond_vectors = diamond_search_motion_estimation(
+    diamond_vectors, ds_stats = diamond_search_motion_estimation(
         reference_frame,
         target_frame,
         block_size=block_size,
         search_range=search_range,
         metric="mad",
+        return_stats=True,
         save_path=ds_vector_path,
     )
 
@@ -129,6 +131,8 @@ def run_motion_estimation_workflow(
         "residual_image_path": str(residual_image_path),
         "residual_stats_path": str(residual_stats_path),
         "fs_vectors": full_vectors,
+        "fs_stats": fs_stats,
         "diamond_vectors": diamond_vectors,
+        "ds_stats": ds_stats,
         "residual_stats": stats,
     }
