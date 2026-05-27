@@ -98,6 +98,16 @@ Run the project from the repository root using the package entry point:
 python -m src.main
 ```
 
+Run the demo workflow to generate short clips, representative frames, and comparison screenshots:
+```bash
+python -m src.demo.run_demo
+```
+
+The demo workflow writes outputs to:
+- `outputs/demo_videos/`
+- `outputs/demo_frames/`
+- `outputs/demo_screenshots/`
+
 ## Expected Outputs
 - Motion vector files for FS and Diamond Search
 - Residual frame images
