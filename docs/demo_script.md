@@ -19,6 +19,11 @@ This demo script provides a workflow to generate video clips, select representat
    python -m src.main
    ```
 6. Verify generated experiment tables in `outputs/reports/`.
+7. Prepare the final project folder for delivery:
+   ```bash
+   python -m src.finalize
+   ```
+8. Verify `outputs/final_project/` contains copied output sections.
    ```bash
    python -m src.main
    ```

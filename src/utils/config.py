@@ -18,6 +18,7 @@ class Config:
     VECTOR_VISUALIZATIONS_DIR = OUTPUT_DIR / "vector_visualizations"
     CHARTS_DIR = OUTPUT_DIR / "charts"
     REPORTS_DIR = OUTPUT_DIR / "reports"
+    FINAL_PROJECT_DIR = OUTPUT_DIR / "final_project"
     LOGS_DIR = OUTPUT_DIR / "logs"
 
     SAMPLE_VIDEO = RAW_VIDEOS_DIR / "low_motion.mp4"
@@ -33,3 +34,4 @@ class Config:
         cls.EXTRACTED_FRAMES_DIR.mkdir(parents=True, exist_ok=True)
         cls.PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
         cls.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        cls.FINAL_PROJECT_DIR.mkdir(parents=True, exist_ok=True)

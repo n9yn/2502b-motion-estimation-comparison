@@ -14,6 +14,7 @@ def resolve_working_paths() -> dict[str, Path]:
         "vector_visualizations": project_root / "outputs" / "vector_visualizations",
         "charts": project_root / "outputs" / "charts",
         "reports": project_root / "outputs" / "reports",
+        "final_project": project_root / "outputs" / "final_project",
         "logs": project_root / "outputs" / "logs",
     }
     for path in paths.values():
