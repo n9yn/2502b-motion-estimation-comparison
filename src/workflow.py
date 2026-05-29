@@ -46,14 +46,13 @@ def _get_sorted_frame_paths(directory: Path) -> list[Path]:
 
 
 def _save_residual_image(residual_frame: np.ndarray, output_path: Path) -> None:
-    normalized = residual_frame.astype(np.float32)
-    minimum = normalized.min()
-    maximum = normalized.max()
-    if maximum != minimum:
-        normalized = (normalized - minimum) / (maximum - minimum) * 255.0
+    residual = residual_frame.astype(np.float32)
+    max_abs = float(np.max(np.abs(residual)))
+    if max_abs == 0:
+        image = np.full(residual.shape, 128, dtype=np.uint8)
     else:
-        normalized = np.zeros_like(normalized)
-    image = np.clip(normalized, 0, 255).astype(np.uint8)
+        # Map signed residuals to 0-255 grayscale with zero at 128.
+        image = np.clip((residual / max_abs) * 127.0 + 128.0, 0, 255).astype(np.uint8)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(output_path), image)
 
