@@ -24,14 +24,14 @@ def _to_grayscale(frame: Any) -> np.ndarray:
     raise ValueError("Unsupported frame type for motion estimation")
 
 
-def _select_block_metric(metric: str, block_a: np.ndarray, block_b: np.ndarray) -> float:
+def _select_block_metric(metric: str, block_a: np.ndarray, block_b: np.ndarray, use_numba: bool = False) -> float:
     metric = metric.lower()
     if metric == "sad":
-        return compute_sad(block_a, block_b)
+        return compute_sad(block_a, block_b, use_numba=use_numba)
     if metric == "mad":
-        return compute_mad(block_a, block_b)
+        return compute_mad(block_a, block_b, use_numba=use_numba)
     if metric == "mse":
-        return compute_mse(block_a, block_b)
+        return compute_mse(block_a, block_b, use_numba=use_numba)
     raise ValueError(f"Unsupported block matching metric: {metric}")
 
 
@@ -41,21 +41,11 @@ def full_search_motion_estimation(
     block_size: int = 16,
     search_range: int = 8,
     metric: str = "sad",
+    use_numba: bool = False,
     return_stats: bool = False,
     save_path: str | Path | None = None,
-    fast_mode: bool = False,
 ) -> list[MotionVector] | tuple[list[MotionVector], dict]:
     """Compute motion vectors using a full search algorithm.
-
-    Args:
-        reference_frame: Reference frame
-        target_frame: Target frame
-        block_size: Size of matching blocks
-        search_range: Range to search for motion vectors
-        metric: Matching metric ('sad', 'mad', 'mse')
-        return_stats: If True, return (vectors, stats) tuple
-        save_path: Optional path to save motion vectors as CSV
-        fast_mode: If True, use coarse-to-fine search for faster execution
 
     If `return_stats` is True, returns (motion_vectors, stats) where stats contains
     `comparisons` and `time_ms`.
@@ -85,57 +75,23 @@ def full_search_motion_estimation(
             min_dy = max(-search_range, -y)
             max_dy = min(search_range, height - block_size - y)
 
-            if fast_mode:
-                # Coarse-to-fine search: first pass with step size 2, then refine
-                step_size = 2
-                for dy in range(min_dy, max_dy + 1, step_size):
-                    for dx in range(min_dx, max_dx + 1, step_size):
-                        candidate_x = x + dx
-                        candidate_y = y + dy
-                        target_block = target_int[candidate_y:candidate_y + block_size, candidate_x:candidate_x + block_size]
-                        distance = _select_block_metric(metric, reference_block, target_block)
-                        comparisons += 1
-                        if distance < best_sad:
-                            best_sad = distance
-                            best_dx = dx
-                            best_dy = dy
-                
-                # Refinement pass: search around best match with step size 1
-                refine_range = 2
-                for dy in range(max(min_dy, best_dy - refine_range), min(max_dy + 1, best_dy + refine_range + 1)):
-                    for dx in range(max(min_dx, best_dx - refine_range), min(max_dx + 1, best_dx + refine_range + 1)):
-                        # Skip if already evaluated in coarse pass
-                        if (dx - min_dx) % step_size == 0 and (dy - min_dy) % step_size == 0:
-                            continue
-                        candidate_x = x + dx
-                        candidate_y = y + dy
-                        target_block = target_int[candidate_y:candidate_y + block_size, candidate_x:candidate_x + block_size]
-                        distance = _select_block_metric(metric, reference_block, target_block)
-                        comparisons += 1
-                        if distance < best_sad:
-                            best_sad = distance
-                            best_dx = dx
-                            best_dy = dy
-            else:
-                # Standard full search
-                for dy in range(min_dy, max_dy + 1):
-                    for dx in range(min_dx, max_dx + 1):
-                        candidate_x = x + dx
-                        candidate_y = y + dy
-                        target_block = target_int[candidate_y:candidate_y + block_size, candidate_x:candidate_x + block_size]
-                        distance = _select_block_metric(metric, reference_block, target_block)
-                        comparisons += 1
-                        if distance < best_sad:
-                            best_sad = distance
-                            best_dx = dx
-                            best_dy = dy
+            for dy in range(min_dy, max_dy + 1):
+                for dx in range(min_dx, max_dx + 1):
+                    candidate_x = x + dx
+                    candidate_y = y + dy
+                    target_block = target_int[candidate_y:candidate_y + block_size, candidate_x:candidate_x + block_size]
+                    distance = _select_block_metric(metric, reference_block, target_block, use_numba=use_numba)
+                    comparisons += 1
+                    if distance < best_sad:
+                        best_sad = distance
+                        best_dx = dx
+                        best_dy = dy
 
             motion_vectors.append(MotionVector(x, y, best_dx, best_dy))
 
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
     stats = {"comparisons": comparisons, "time_ms": elapsed_ms}
-    mode_str = " (fast mode)" if fast_mode else ""
-    print(f"✓ Full Search generated {len(motion_vectors)} motion vectors (comparisons={comparisons}, time={elapsed_ms:.1f}ms){mode_str}")
+    print(f"✓ Full Search generated {len(motion_vectors)} motion vectors (comparisons={comparisons}, time={elapsed_ms:.1f}ms)")
 
     if save_path is not None:
         p = Path(save_path)

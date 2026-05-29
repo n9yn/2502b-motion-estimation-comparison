@@ -108,6 +108,7 @@ def show_dashboard() -> None:
                 tmp_path,
                 block_size=params["block_size"],
                 search_range=params["search_range"],
+                use_numba=params.get("use_numba", False),
                 output_root=out_root,
             )
 
@@ -266,12 +267,12 @@ def show_dashboard() -> None:
                 with v1:
                     st.subheader("Motion Vectors")
                     if "comparison" in vis_paths:
-                        st.image(vis_paths["comparison"], width=640)
+                        st.image(vis_paths["comparison"], width=760)
                     else:
                         if "fs" in vis_paths:
-                            st.image(vis_paths["fs"], caption="Full Search", width=400)
+                            st.image(vis_paths["fs"], caption="Full Search", width=560)
                         if "ds" in vis_paths:
-                            st.image(vis_paths["ds"], caption="Diamond Search", width=400)
+                            st.image(vis_paths["ds"], caption="Diamond Search", width=560)
 
             if params["show_residuals"]:
                 with v2:

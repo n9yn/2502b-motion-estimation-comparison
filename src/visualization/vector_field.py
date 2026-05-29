@@ -15,7 +15,7 @@ def plot_motion_vectors(
     motion_vectors: list[MotionVector],
     output_path: str | Path,
     title: str = "Motion Vector Field",
-    scale: float = 2.0,
+    scale: float = 4.0,
 ) -> None:
     """Plot motion vectors on top of a reference frame.
     
@@ -39,7 +39,7 @@ def plot_motion_vectors(
     else:
         display_frame = frame
 
-    fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
     ax.imshow(display_frame, cmap='gray' if len(display_frame.shape) == 2 else None)
     
     # Plot motion vectors using quiver for clarity and performance
@@ -48,14 +48,14 @@ def plot_motion_vectors(
         Y = [mv.y for mv in motion_vectors]
         U = [mv.dx * scale for mv in motion_vectors]
         V = [mv.dy * scale for mv in motion_vectors]
-        ax.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale=1, color='red', alpha=0.8)
+        ax.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale=1, color='red', alpha=0.8, width=0.005)
     
-    ax.set_title(title, fontsize=16, fontweight='bold')
-    ax.set_xlabel('X (pixels)', fontsize=12)
-    ax.set_ylabel('Y (pixels)', fontsize=12)
+    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.set_xlabel('X (pixels)')
+    ax.set_ylabel('Y (pixels)')
     
     plt.tight_layout()
-    plt.savefig(output_path, dpi=200, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
     print(f"✓ Plotted {len(motion_vectors)} motion vectors to {output_path}")
@@ -132,7 +132,7 @@ def plot_vector_field_comparison(
     """
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 12))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8))
     
     # Full Search visualization
     if isinstance(frame_fs, np.ndarray):
@@ -147,13 +147,13 @@ def plot_vector_field_comparison(
     for mv in vectors_fs:
         ax1.arrow(
             mv.x, mv.y,
-            mv.dx * 2.0, mv.dy * 2.0,
-            head_width=3, head_length=2,
-            fc='red', ec='red', alpha=0.7, linewidth=1.5
+            mv.dx * 4.0, mv.dy * 4.0,
+            head_width=4, head_length=3,
+            fc='red', ec='red', alpha=0.8, linewidth=1.8
         )
-    ax1.set_title('Full Search Vector Field', fontsize=14, fontweight='bold')
-    ax1.set_xlabel('X (pixels)', fontsize=12)
-    ax1.set_ylabel('Y (pixels)', fontsize=12)
+    ax1.set_title('Full Search Vector Field', fontsize=12, fontweight='bold')
+    ax1.set_xlabel('X (pixels)')
+    ax1.set_ylabel('Y (pixels)')
     
     # Diamond Search visualization
     if isinstance(frame_diamond, np.ndarray):
@@ -168,17 +168,17 @@ def plot_vector_field_comparison(
     for mv in vectors_diamond:
         ax2.arrow(
             mv.x, mv.y,
-            mv.dx * 2.0, mv.dy * 2.0,
-            head_width=3, head_length=2,
-            fc='blue', ec='blue', alpha=0.7, linewidth=1.5
+            mv.dx * 4.0, mv.dy * 4.0,
+            head_width=4, head_length=3,
+            fc='blue', ec='blue', alpha=0.8, linewidth=1.8
         )
-    ax2.set_title('Diamond Search Vector Field', fontsize=14, fontweight='bold')
-    ax2.set_xlabel('X (pixels)', fontsize=12)
-    ax2.set_ylabel('Y (pixels)', fontsize=12)
+    ax2.set_title('Diamond Search Vector Field', fontsize=12, fontweight='bold')
+    ax2.set_xlabel('X (pixels)')
+    ax2.set_ylabel('Y (pixels)')
     
-    plt.suptitle(title, fontsize=16, fontweight='bold')
+    plt.suptitle(title, fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(output_path, dpi=200, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     
     print(f"✓ Comparison plot saved to {output_path}")

@@ -24,14 +24,14 @@ def _to_grayscale(frame: Any) -> np.ndarray:
     raise ValueError("Unsupported frame type for motion estimation")
 
 
-def _select_block_metric(metric: str, block_a: np.ndarray, block_b: np.ndarray) -> float:
+def _select_block_metric(metric: str, block_a: np.ndarray, block_b: np.ndarray, use_numba: bool = False) -> float:
     metric = metric.lower()
     if metric == "sad":
-        return compute_sad(block_a, block_b)
+        return compute_sad(block_a, block_b, use_numba=use_numba)
     if metric == "mad":
-        return compute_mad(block_a, block_b)
+        return compute_mad(block_a, block_b, use_numba=use_numba)
     if metric == "mse":
-        return compute_mse(block_a, block_b)
+        return compute_mse(block_a, block_b, use_numba=use_numba)
     raise ValueError(f"Unsupported block matching metric: {metric}")
 
 
@@ -49,7 +49,8 @@ def _search_candidates(
     min_dy: int,
     max_dy: int,
     metric: str,
-) -> tuple[int, int, int, int]:
+    use_numba: bool,
+) -> tuple[int, int, float, int]:
     """Search a small diamond of candidates and return best dx, dy, metric distance, comparisons."""
     best_dx = center_dx
     best_dy = center_dy
@@ -67,7 +68,7 @@ def _search_candidates(
         candidate_x = x + candidate_dx
         candidate_y = y + candidate_dy
         target_block = target[candidate_y:candidate_y + block_size, candidate_x:candidate_x + block_size]
-        distance = _select_block_metric(metric, reference_block, target_block)
+        distance = _select_block_metric(metric, reference_block, target_block, use_numba=use_numba)
         comparisons += 1
         if distance < best_distance:
             best_distance = distance
@@ -83,6 +84,7 @@ def diamond_search_motion_estimation(
     block_size: int = 16,
     search_range: int = 8,
     metric: str = "sad",
+    use_numba: bool = False,
     return_stats: bool = False,
     save_path: str | Path | None = None,
 ) -> list[MotionVector] | tuple[list[MotionVector], dict]:
@@ -130,6 +132,7 @@ def diamond_search_motion_estimation(
                     min_dy,
                     max_dy,
                     metric,
+                    use_numba,
                 )
                 comparisons += comps
 

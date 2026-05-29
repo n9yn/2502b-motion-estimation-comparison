@@ -62,6 +62,7 @@ def run_motion_estimation_workflow(
     video_path: str | Path,
     block_size: int = Config.BLOCK_SIZE,
     search_range: int = Config.SEARCH_RANGE,
+    use_numba: bool = False,
     output_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run the motion estimation pipeline on a single video file."""
@@ -108,6 +109,7 @@ def run_motion_estimation_workflow(
         block_size=block_size,
         search_range=search_range,
         metric="mad",
+        use_numba=use_numba,
         return_stats=True,
         save_path=fs_vector_path,
     )
@@ -117,6 +119,7 @@ def run_motion_estimation_workflow(
         block_size=block_size,
         search_range=search_range,
         metric="mad",
+        use_numba=use_numba,
         return_stats=True,
         save_path=ds_vector_path,
     )
