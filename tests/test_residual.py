@@ -18,6 +18,26 @@ def test_generate_residual_frame_returns_frame() -> None:
     assert isinstance(result, np.ndarray)
 
 
+def test_generate_residual_frame_matches_target_after_prediction() -> None:
+    """Residual should be zero where the predicted block exactly matches the target."""
+    reference = np.zeros((32, 32), dtype=np.uint8)
+    reference[8:24, 8:24] = 100
+
+    target = np.zeros((32, 32), dtype=np.uint8)
+    target[12:28, 12:28] = 100
+
+    motion_vectors = [MotionVector(8, 8, 4, 4)]
+
+    residual = generate_residual_frame(reference, target, motion_vectors, block_size=16)
+
+    assert residual.shape == target.shape
+    assert np.all(residual[12:28, 12:28] == 0)
+    assert np.all(residual[:12, :] == 0)
+    assert np.all(residual[28:, :] == 0)
+    assert np.all(residual[:, :12] == 0)
+    assert np.all(residual[:, 28:] == 0)
+
+
 def test_calculate_residual_energy_returns_float() -> None:
     """Residual energy calculation should return a float value."""
     energy = calculate_residual_energy(np.zeros((1, 1), dtype=np.uint8))

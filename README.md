@@ -1,170 +1,107 @@
 # 2502b — Motion Estimation Algorithm Comparison
 
-## Project Overview
-This university multimedia compression project compares Full Search (FS) and Diamond Search motion estimation algorithms for video compression. The repository is structured to support preprocessing, motion estimation, residual generation, visualization, and analysis.
+This repository implements and compares two block-based motion estimation algorithms used in video compression: Full Search (exhaustive) and Diamond Search (fast heuristic). It includes preprocessing tools, motion estimation implementations, residual generation and analysis, visualizations, and a Streamlit dashboard for interactive demos.
 
-## Objectives
-- Compare Full Search and Diamond Search motion estimation performance
-- Generate motion vectors and residual frames
-- Analyze residual energy for compression efficiency
-- Visualize motion vector fields and algorithm comparisons
-- Measure runtime differences and chart results
+**Key goals:**
+- Compare estimation quality (residual energy) and runtime between Full Search and Diamond Search
+- Produce motion vector CSVs, reconstructed/predicted frames, and signed residual images
+- Generate charts and vector-field visualizations for analysis and reports
 
-## Folder Structure
-```
-2502b-motion-estimation-comparison/
-│
-├── README.md
-├── requirements.txt
-├── .gitignore
-│
-├── data/
-│   ├── raw_videos/
-│   │   ├── low_motion.mp4
-│   │   ├── medium_motion.mp4
-│   │   └── high_motion.mp4
-│   │
-│   ├── extracted_frames/
-│   │   ├── low_motion/
-│   │   ├── medium_motion/
-│   │   └── high_motion/
-│   │
-│   └── processed/
-│
-├── src/
-│   ├── main.py
-│   │
-│   ├── preprocessing/
-│   │   ├── frame_extractor.py
-│   │   └── grayscale_converter.py
-│   │
-│   ├── motion_estimation/
-│   │   ├── full_search.py
-│   │   ├── diamond_search.py
-│   │   ├── block_matching.py
-│   │   └── motion_vector.py
-│   │
-│   ├── residual/
-│   │   ├── residual_generator.py
-│   │   └── residual_energy.py
-│   │
-│   ├── visualization/
-│   │   ├── vector_field.py
-│   │   ├── residual_plot.py
-│   │   └── comparison_chart.py
-│   │
-│   └── utils/
-│       ├── config.py
-│       ├── metrics.py
-│       └── file_handler.py
-│
-├── outputs/
-│   ├── motion_vectors/
-│   │   ├── fs/
-│   │   └── diamond/
-│   │
-│   ├── residual_frames/
-│   │
-│   ├── vector_visualizations/
-│   │
-│   ├── charts/
-│   │
-│   └── logs/
-│
-├── notebooks/
-│   └── experiments.ipynb
-│
-├── docs/
-│   ├── report/
-│   ├── screenshots/
-│   └── demo_script.md
-│
-└── tests/
-    ├── test_full_search.py
-    ├── test_diamond_search.py
-    └── test_residual.py
-```
+**Repository layout (important paths):**
 
-## Installation
-1. Create and activate a Python 3.11+ virtual environment.
-2. Install dependencies:
-```bash
+- `data/raw_videos/` — source video files used for experiments
+- `data/extracted_frames/` — extracted frames (per-video folders)
+- `src/` — source code; key modules:
+    - `src/main.py` — main CLI entry for running experiments
+    - `src/workflow.py` — high-level workflow orchestration
+    - `src/demo/run_demo.py` — small demo runner for quick experiments
+    - `src/motion_estimation/` — algorithms: `full_search.py`, `diamond_search.py`
+    - `src/residual/` — `residual_generator.py`, `residual_energy.py`
+    - `src/visualization/` — plotting helpers and vector field rendering
+- `outputs/` — generated artifacts (ignored by default); subfolders introduced at runtime:
+    - `outputs/motion_vectors/{fs,diamond}/` — CSV motion vectors
+    - `outputs/residual_frames/` — signed residual images (uint8 mapped with 128=center)
+    - `outputs/reports/` — CSV/MD experiment reports and runtime tables
+    - `outputs/visualizations/` — charts and comparison images
+
+Prerequisites
+-------------
+- Python 3.10+ (3.11 recommended)
+- A working virtual environment (venv, conda, etc.)
+- System packages: OpenCV (cv2), NumPy, Matplotlib, Streamlit (optional)
+
+Install dependencies:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1   # PowerShell
 pip install -r requirements.txt
 ```
 
-## How to Run
-Run the project from the repository root using the package entry point:
-```bash
-python -m src.main
-```
+Running experiments
+-------------------
 
-Run the demo workflow to generate short clips, representative frames, and comparison screenshots:
-```bash
+1) Quick demo (small, fast)
+
+```powershell
 python -m src.demo.run_demo
 ```
 
-The demo workflow writes outputs to:
-- `outputs/demo_videos/`
-- `outputs/demo_frames/`
-- `outputs/demo_screenshots/`
+This writes demo outputs into `outputs/demo_*` and `outputs/visualizations/`.
 
-Run the main comparison workflow to generate algorithm comparison tables:
-```bash
+2) Full comparison workflow
+
+```powershell
 python -m src.main
 ```
 
-The main comparison workflow writes experiment reports to:
-- `outputs/reports/`
+This runs the configured experiments (see `src/utils/config.py`) and writes motion vectors, residual frames, and reports to `outputs/`.
 
-Run the final packaging workflow to prepare the final project folder:
-```bash
-python -m src.finalize
+3) Run a single workflow step (example: extract frames)
+
+```powershell
+python -m src.preprocessing.frame_extractor --input data/raw_videos/high_motion.mp4 --out data/extracted_frames/high_motion
 ```
 
-The final project workflow writes:
-- `outputs/final_project/`
+Testing
+-------
 
-## Expected Outputs
-- Motion vector files for FS and Diamond Search
-- Residual frame images
-- Residual energy comparison metrics
-- Motion vector field visualizations
-- Runtime and algorithm comparison charts
+Run the test suite with:
 
-## Algorithm Overview
-- **Full Search**: exhaustive block matching over a search window.
-- **Diamond Search**: fast search heuristic that reduces candidate evaluations.
-- **Block Matching**: similarity metrics such as SAD, MAD, and MSE are used to find the best motion matches.
-
-## Future Improvements
-- Add real codec integration for bitstream generation
-- Support additional fast search algorithms
-- Add quantitative rate-distortion analysis
-- Improve visualizations and reporting
-
-## Team Members
-- Triệu Tiến Nguyên
-- Nguyễn Lâm Tuấn Linh
-
-## Quickstart
-
-- Create and activate the Python virtual environment (Python 3.10+ recommended):
-
-```bash
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-- Run tests:
-
-```bash
+```powershell
 python -m pytest -q
 ```
 
-## Recent Changes
+Streamlit dashboard
+-------------------
 
-- Added optional `save_path` for motion vector exporters in `src/motion_estimation`.
-- Fixed a signature bug in `diamond_search` and improved metric handling.
-- Micro-optimized block-matching metrics and improved vector visualizations.
+Start the interactive demo (optional):
+
+```powershell
+streamlit run app.py
+```
+
+The dashboard can be used to run short experiments, visualize motion vectors, and download generated outputs.
+
+Notes about residuals and outputs
+--------------------------------
+- Residuals are computed as `signed = target.astype(int16) - predicted` and are saved as uint8 images with zero mapped to 128 (mid-gray). This preserves sign information when visualizing residuals.
+- `outputs/` is in `.gitignore` by default to avoid committing large artifacts. Only commit metadata and code. If you need to publish specific results, export the relevant CSV/PNG and commit them separately under a dedicated `results/` folder.
+
+Contributing
+------------
+
+- Please open issues or PRs for improvements.
+- Run tests and ensure new code includes unit tests where appropriate.
+
+Authors
+-------
+
+- Triệu Tiến Nguyên
+- Nguyễn Lâm Tuấn Linh
+
+License
+-------
+
+This project is provided under the terms of the repository LICENSE file.
 
